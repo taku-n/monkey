@@ -45,7 +45,12 @@ type Parser struct {
 }
 
 type (
-	prefixParseFn func() ast.Expression
+	prefixParseFn fu//   - 1 + 2 ;
+		// 1 6   4
+		//   ^ ^
+		//   ( - 1 ) + 2 ;
+		// 1         4
+		//           ^ ^nc() ast.Expression
 	infixParseFn func(ast.Expression) ast.Expression  // The arg is the left of an operator
 )
 
@@ -114,6 +119,29 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
+		//   1 + 2 + 3 ;
+		// 1   4   4
+		//   ^ ^
+		//   ( 1 + 2 ) + 3 ;
+		// 1           4
+		//             ^ ^
+		// ( 1 + 2 ) + 3 ;
+		//             ^ ^
+		//
+		//   - 1 + 2 ;
+		// 1 6   4
+		//   ^ ^
+		//   ( - 1 ) + 2 ;
+		// 1         4
+		//           ^ ^
+		// ( - 1 ) + 2 ;
+		//           ^ ^
+		//
+		//   1 + 2 * 3 ;
+		// 1   4   5
+		//   ^ ^
+		// 1 + ( 2 * 3 ) ;
+		//           ^   ^
 		return p.parseExpressionStatement()
 	}
 }
@@ -202,12 +230,16 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	defer untrace(trace("parseExpression"))
 
+	// Prefix Phase
+
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
 		p.noPrefixParseFnError(p.curToken.Type)
 		return nil
 	}
 	leftExp := prefix()
+
+	// Infix Phase
 
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
 		infix := p.infixParseFns[p.peekToken.Type]
