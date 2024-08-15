@@ -45,12 +45,7 @@ type Parser struct {
 }
 
 type (
-	prefixParseFn fu//   - 1 + 2 ;
-		// 1 6   4
-		//   ^ ^
-		//   ( - 1 ) + 2 ;
-		// 1         4
-		//           ^ ^nc() ast.Expression
+	prefixParseFn func() ast.Expression
 	infixParseFn func(ast.Expression) ast.Expression  // The arg is the left of an operator
 )
 
